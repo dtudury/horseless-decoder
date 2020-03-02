@@ -1,0 +1,32 @@
+{
+  "name": "horseless.decoder",
+  "version": "0.0.0",
+  "description": "decoder for html-like template strings",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dtudury/horseless-decoder.git"
+  },
+  "keywords": [
+    "parse",
+    "decode",
+    "html",
+    "jsx"
+  ],
+  "author": "David Tudury <david.tudury@gmail.com>",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/dtudury/horseless-decoder/issues"
+  },
+  "homepage": "https://github.com/dtudury/horseless-decoder#readme",
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "esm": "^3.2.25",
+    "mocha": "^7.1.0",
+    "nyc": "^15.0.0",
+    "standard": "^14.3.1"
+  }
+}
