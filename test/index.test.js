@@ -1,0 +1,11 @@
+
+/* global describe it */
+import { assert } from 'chai'
+import { h } from '../index.js'
+
+describe('h', function () {
+  it('should parse basic html-like strings', function () {
+    const decoded = h`<x a="b">c</x>`
+    console.log(decoded)
+  })
+})

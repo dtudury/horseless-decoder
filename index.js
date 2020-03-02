@@ -62,7 +62,7 @@ function _decodeElement (arr, xmlns, that) {
   xmlns = attributes.obj.xmlns || xmlns
   const isEmpty = readIf(arr, '/')
   assertChar(arr, />/)
-  const children = (isClosing || isEmpty) ? [] : decodeDescriptions(arr, tag, xmlns, that)
+  const children = (isClosing || isEmpty) ? [] : _decodeDescriptions(arr, tag, xmlns, that)
   return { type: 'node', tag, attributes, children, isClosing, xmlns, that }
 }
 
@@ -78,7 +78,7 @@ function _decodeDescription (arr, xmlns, that) {
   }
 }
 
-export function decodeDescriptions (arr, closingTag, xmlns = 'http://www.w3.org/1999/xhtml', that) {
+function _decodeDescriptions (arr, closingTag, xmlns = 'http://www.w3.org/1999/xhtml', that) {
   const nodes = []
   while (arr.i < arr.length) {
     const node = _decodeDescription(arr, xmlns, that)
@@ -91,4 +91,30 @@ export function decodeDescriptions (arr, closingTag, xmlns = 'http://www.w3.org/
     }
   }
   return [].concat.apply([], nodes)
+}
+
+export function h (strings, ...values) {
+  let xmlns
+  let that
+  function _h (strings, ...values) {
+    const ss = [strings[0].split('')]
+    for (let i = 0; i < values.length; i++) {
+      ss.push({ value: values[i], isValue: true })
+      ss.push(strings[i + 1].split(''))
+    }
+    const arr = [].concat.apply([], ss)
+    arr.i = 0
+    return _decodeDescriptions(arr, null, xmlns, that)
+  }
+  if (Array.isArray(strings)) {
+    return _h(strings, ...values)
+  } else if (typeof strings === 'string' || strings == null) {
+    xmlns = strings
+    that = values[0]
+    return _h
+  } else if (typeof strings === 'object') {
+    that = strings
+    xmlns = values[0]
+    return _h
+  }
 }
