@@ -1,15 +1,8 @@
 import { skipWhiteSpace, readTo, readToArr, readValue, assertChar, readIf } from './lib/basicDecoders.js'
 import { FRAGMENT } from './lib/fragment.js'
 
-function _decodeTag (arr) {
-  skipWhiteSpace(arr)
-  const c = arr[arr.i]
-  if (c.isValue) {
-    arr.i++
-    return c.value
-  }
-  return readTo(arr, /[\s/>]/)
-}
+// https://html.spec.whatwg.org/multipage/syntax.html#void-elements
+// const _voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']
 
 function _decodeAttribute (arr) {
   skipWhiteSpace(arr)
@@ -39,49 +32,51 @@ function _decodeAttribute (arr) {
 }
 
 function _decodeAttributes (arr) {
-  const out = { obj: {} }
+  const out = {}
   while (true) {
     const attribute = _decodeAttribute(arr)
     if (attribute) {
-      if (typeof attribute === 'function') {
-        out.callback = attribute
-      } else {
-        Object.assign(out.obj, attribute)
-      }
+      Object.assign(out, attribute)
     } else {
       return out
     }
   }
 }
 
-function _decodeElement (arr, xmlns, that) {
-  assertChar(arr, /</)
-  const isClosing = readIf(arr, '/')
-  const tag = _decodeTag(arr) || FRAGMENT
-  const attributes = _decodeAttributes(arr)
-  xmlns = attributes.obj.xmlns || xmlns
-  const isEmpty = readIf(arr, '/')
-  assertChar(arr, />/)
-  const children = (isClosing || isEmpty) ? [] : _decodeDescriptions(arr, tag, xmlns, that)
-  return { type: 'node', tag, attributes, children, isClosing, xmlns, that }
+function _decodeTag (arr) {
+  skipWhiteSpace(arr)
+  const c = arr[arr.i]
+  if (c.isValue) {
+    arr.i++
+    return c.value
+  }
+  return readTo(arr, /[\s/>]/)
 }
 
-function _decodeDescription (arr, xmlns, that) {
+function _decodeElement (arr, xmlns) {
   const c = arr[arr.i]
   if (c.isValue) {
     arr.i++
     return c.value
   } else if (c === '<') {
-    return _decodeElement(arr, xmlns, that)
+    assertChar(arr, /</)
+    const isClosing = readIf(arr, '/')
+    const tag = _decodeTag(arr) || FRAGMENT
+    const attributes = _decodeAttributes(arr)
+    xmlns = attributes.xmlns || xmlns
+    const isEmpty = readIf(arr, '/')
+    assertChar(arr, />/)
+    const children = (isClosing || isEmpty) ? [] : _decodeElements(arr, tag, xmlns)
+    return { type: 'node', tag, attributes, children, isClosing, xmlns }
   } else {
     return { type: 'textnode', value: readTo(arr, /</) }
   }
 }
 
-function _decodeDescriptions (arr, closingTag, xmlns = 'http://www.w3.org/1999/xhtml', that) {
+function _decodeElements (arr, closingTag, xmlns = 'http://www.w3.org/1999/xhtml') {
   const nodes = []
   while (arr.i < arr.length) {
-    const node = _decodeDescription(arr, xmlns, that)
+    const node = _decodeElement(arr, xmlns)
     if (node) {
       if (closingTag && node.isClosing && node.tag === closingTag) {
         return nodes
@@ -95,7 +90,6 @@ function _decodeDescriptions (arr, closingTag, xmlns = 'http://www.w3.org/1999/x
 
 export function h (strings, ...values) {
   let xmlns
-  let that
   function _h (strings, ...values) {
     const ss = [strings[0].split('')]
     for (let i = 0; i < values.length; i++) {
@@ -104,17 +98,12 @@ export function h (strings, ...values) {
     }
     const arr = [].concat.apply([], ss)
     arr.i = 0
-    return _decodeDescriptions(arr, null, xmlns, that)
+    return _decodeElements(arr, null, xmlns)
   }
   if (Array.isArray(strings)) {
     return _h(strings, ...values)
   } else if (typeof strings === 'string' || strings == null) {
     xmlns = strings
-    that = values[0]
-    return _h
-  } else if (typeof strings === 'object') {
-    that = strings
-    xmlns = values[0]
     return _h
   }
 }
