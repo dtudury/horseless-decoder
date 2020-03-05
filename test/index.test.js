@@ -17,7 +17,7 @@ describe('h', function () {
         },
         { type: 'textnode', value: 'def' }
       ])
-      assert.throws(function () { h`<a/ ` })
+      assert.throws(function () { h`<a/Error` })
     })
     it('should parse html escaped strings', function () {
       const decoded = h`&amp;&apos;&gt;&lt;&quot;<a b="&amp;&apos;&gt;&lt;&quot;"/>`
@@ -61,6 +61,9 @@ describe('h', function () {
       assert.deepEqual(h`<a b=c/>`[0].attributes, { b: 'c' })
       assert.deepEqual(h`<a b = c />`[0].attributes, { b: 'c' })
     })
-    // it('should handle void elements')
+    it('should handle void elements', function () {
+      const decoded = h`<br><hr/></br>`
+      assert.equal(decoded.length, 3)
+    })
   })
 })
