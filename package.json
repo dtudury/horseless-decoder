@@ -1,6 +1,6 @@
 {
   "name": "horseless.decoder",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "decoder for html-like template strings",
   "main": "index.js",
   "scripts": {

@@ -1,7 +1,7 @@
 
 /* global describe it */
 import { assert } from 'chai'
-import { h, FRAGMENT } from '../index.js'
+import { h } from '../index.js'
 
 describe('h', function () {
   describe('basic decoding', function () {
@@ -35,6 +35,12 @@ describe('h', function () {
       assert.deepEqual(decoded[0].attributes.b, [1, ' 2 ', 3])
       assert.equal(decoded[0].attributes.c, 4)
     })
+    it('should throw on attempted interpolation of xmlns attribute', function () {
+      assert.throws(function () {
+        const yearAndLanguage = '2000/svg'
+        h`<a xmlns="http://www.w3.org/${yearAndLanguage}"/>`
+      })
+    })
     it('should parse values as elements', function () {
       const decoded = h`${1}<a>${h`<b>c</b>`}</a>${null}`
       assert.equal(decoded[1].children[0][0].children[0].value, 'c')
@@ -42,12 +48,13 @@ describe('h', function () {
     })
     it('should parse fragment nodes', function () {
       const decoded = h`<>a</>`
-      assert.equal(decoded[0].tag, FRAGMENT)
+      assert.equal(decoded[0].tag, null)
       assert.equal(decoded[0].children[0].value, 'a')
     })
     it('should handle different namespaces', function () {
       assert.equal(h`<html/>`[0].xmlns, 'http://www.w3.org/1999/xhtml')
       assert.equal(h('http://www.w3.org/2000/svg')`<svg/>`[0].xmlns, 'http://www.w3.org/2000/svg')
+      assert.equal(h`<svg xmlns="http://www.w3.org/2000/svg"><g/></svg>`[0].children[0].xmlns, 'http://www.w3.org/2000/svg')
     })
   })
   describe('html special decoding', function () {
