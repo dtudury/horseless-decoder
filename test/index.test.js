@@ -51,8 +51,13 @@ describe('h', function () {
     })
   })
   describe('html special decoding', function () {
-    //it('should handle void elements')
-    //it('should handle boolean attributes')
-    //it('should handle unquoted attributes')
+    it('should handle boolean attributes', function () {
+      assert.deepEqual(h`<a b/>`[0].attributes, { b: 'b' })
+      assert.deepEqual(h`<a b>`[0].attributes, { b: 'b' })
+      assert.deepEqual(h`<a b />`[0].attributes, { b: 'b' })
+      assert.deepEqual(h`<a b >`[0].attributes, { b: 'b' })
+    })
+    // it('should handle void elements')
+    // it('should handle unquoted attributes')
   })
 })
