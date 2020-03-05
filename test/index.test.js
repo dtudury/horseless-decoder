@@ -67,3 +67,21 @@ describe('h', function () {
     })
   })
 })
+
+function logDecoded (decoded, indent = '') {
+  if (Array.isArray(decoded)) {
+    decoded.forEach(child => logDecoded(child, indent))
+  } else if (typeof decoded === 'object') {
+    let attributes = Object.entries(decoded.attributes).map(([key, value]) => `${key}="${value}"`).join(' ')
+    attributes = attributes && ` ${attributes}`
+    if (decoded.children.length) {
+      console.log(`${indent}<${decoded.tag}${attributes}>`)
+      logDecoded(decoded.children, `  ${indent}`)
+      console.log(`${indent}</${decoded.tag}>`)
+    } else {
+      console.log(`${indent}<${decoded.tag}${attributes}/>`)
+    }
+  }
+}
+
+logDecoded(h`</w><a><x/><b><y/></a><z/></b>`)
