@@ -57,7 +57,10 @@ describe('h', function () {
       assert.deepEqual(h`<a b />`[0].attributes, { b: 'b' })
       assert.deepEqual(h`<a b >`[0].attributes, { b: 'b' })
     })
+    it('should handle unquoted attributes', function () {
+      assert.deepEqual(h`<a b=c/>`[0].attributes, { b: 'c' })
+      assert.deepEqual(h`<a b = c />`[0].attributes, { b: 'c' })
+    })
     // it('should handle void elements')
-    // it('should handle unquoted attributes')
   })
 })
