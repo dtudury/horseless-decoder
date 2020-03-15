@@ -1,7 +1,7 @@
-
 /* global describe it */
+
 import { assert } from 'chai'
-import { h } from '../index.js'
+import { h } from '../decoder.js'
 
 describe('h', function () {
   describe('basic decoding', function () {
