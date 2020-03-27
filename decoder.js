@@ -1,6 +1,32 @@
-import { skipWhiteSpace, readTo, readToArr, readValue, assertChar, readIf } from './lib/basicDecoders.js'
+import { skipWhiteSpace, readTo, readValue, readEscaped, assertChar, readIf } from './lib/basicDecoders.js'
 
 const _voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
+
+function _readValueParts (arr, regex) {
+  const out = []
+  let ss = []
+  while (arr.i < arr.length) {
+    const c = arr[arr.i]
+    if (c.isValue) {
+      if (ss.length) {
+        out.push({ type: 'part', value: ss.join('') })
+        ss = []
+      }
+      out.push(c.value)
+      arr.i++
+    } else if (c.match(regex)) {
+      if (ss.length) {
+        out.push({ type: 'part', value: ss.join('') })
+      }
+      return out
+    } else if (c === '&') {
+      ss.push(readEscaped(arr))
+    } else {
+      ss.push(c)
+      arr.i++
+    }
+  }
+}
 
 function _decodeAttribute (arr) {
   skipWhiteSpace(arr)
@@ -11,8 +37,10 @@ function _decodeAttribute (arr) {
   let name = readValue(arr)
   if (name && name.isValue) {
     return name.value
-  } else {
-    name = readTo(arr, /[\s=/>]/)
+  }
+  name = readTo(arr, /[\s=/>]/)
+  if (!name) {
+    throw new Error('attribute must have a name (dynamic attributes okay, dynamic names... sorry)')
   }
   skipWhiteSpace(arr)
   const equalSign = readIf(arr, '=')
@@ -24,26 +52,26 @@ function _decodeAttribute (arr) {
     } else {
       const quote = readIf(arr, /['"]/)
       if (quote) {
-        value = readToArr(arr, quote)
+        value = _readValueParts(arr, quote)
         assertChar(arr, quote)
       } else {
         value = readTo(arr, /[\s=/>]/)
       }
     }
-    return { [name]: value }
+    return { type: 'attribute', name, value }
   } else {
-    return { [name]: name }
+    return { type: 'attribute', name }
   }
 }
 
 function _decodeAttributes (arr) {
-  const out = {}
+  const attributes = []
   while (true) {
     const attribute = _decodeAttribute(arr)
-    if (attribute) {
-      Object.assign(out, attribute)
+    if (attribute !== undefined) {
+      attributes.push(attribute)
     } else {
-      return out
+      return attributes
     }
   }
 }
@@ -58,7 +86,7 @@ function _decodeTag (arr) {
   return readTo(arr, /[\s/>]/)
 }
 
-function _decodeElement (arr, xmlns) {
+function _decodeElement (arr) {
   const c = arr[arr.i]
   if (c.isValue) {
     arr.i++
@@ -66,32 +94,26 @@ function _decodeElement (arr, xmlns) {
   } else if (c === '<') {
     assertChar(arr, /</)
     let isClosing = readIf(arr, '/')
-    const tag = _decodeTag(arr) || null
+    const tag = _decodeTag(arr)
     const isVoid = _voidElements.has(tag)
     isClosing = isClosing && !isVoid
     const attributes = _decodeAttributes(arr)
-    if (attributes.xmlns) {
-      if (attributes.xmlns.length !== 1) {
-        throw new Error('xmlns attributes don\'t support interpolation')
-      }
-      xmlns = attributes.xmlns[0]
-    }
     const isEmpty = readIf(arr, '/') || isVoid
     assertChar(arr, />/)
-    const children = (isClosing || isEmpty) ? [] : _decodeElements(arr, tag, xmlns)
-    return { type: 'node', tag, attributes, children, isClosing, xmlns }
+    const children = (isClosing || isEmpty) ? [] : _decodeElements(arr, tag)
+    return { type: 'node', tag, attributes, children, isClosing }
   } else {
     return { type: 'textnode', value: readTo(arr, /</) }
   }
 }
 
-function _decodeElements (arr, closingTag, xmlns) {
+function _decodeElements (arr, closingTag) {
   const nodes = []
   while (arr.i < arr.length) {
-    const node = _decodeElement(arr, xmlns)
-    if (node) {
+    const node = _decodeElement(arr)
+    if (node != null) {
       if (node.isClosing) {
-        if (closingTag) {
+        if (closingTag != null) {
           return nodes
         }
       } else {
@@ -104,21 +126,12 @@ function _decodeElements (arr, closingTag, xmlns) {
 }
 
 export function h (strings, ...values) {
-  let xmlns = 'http://www.w3.org/1999/xhtml'
-  function _h (strings, ...values) {
-    const ss = [strings[0].split('')]
-    for (let i = 0; i < values.length; i++) {
-      ss.push({ value: values[i], isValue: true })
-      ss.push(strings[i + 1].split(''))
-    }
-    const arr = [].concat.apply([], ss)
-    arr.i = 0
-    return _decodeElements(arr, null, xmlns)
+  const ss = [strings[0].split('')]
+  for (let i = 0; i < values.length; i++) {
+    ss.push({ value: values[i], isValue: true })
+    ss.push(strings[i + 1].split(''))
   }
-  if (Array.isArray(strings)) {
-    return _h(strings, ...values)
-  } else {
-    xmlns = strings
-    return _h
-  }
+  const arr = [].concat.apply([], ss)
+  arr.i = 0
+  return _decodeElements(arr, null)
 }
