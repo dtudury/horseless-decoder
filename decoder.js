@@ -93,14 +93,14 @@ function _decodeElement (arr) {
     return c.value
   } else if (c === '<') {
     assertChar(arr, /</)
-    let isClosing = readIf(arr, '/')
+    const isClosing = readIf(arr, '/')
     const tag = _decodeTag(arr)
     const isVoid = _voidElements.has(tag)
-    isClosing = isClosing && !isVoid
     const attributes = _decodeAttributes(arr)
     const isEmpty = readIf(arr, '/') || isVoid
     assertChar(arr, />/)
     const children = (isClosing || isEmpty) ? [] : _decodeElements(arr, tag)
+    if (isVoid && isClosing) return null
     return { type: 'node', tag, attributes, children, isClosing }
   } else {
     return { type: 'textnode', value: readTo(arr, /</) }
