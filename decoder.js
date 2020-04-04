@@ -1,6 +1,7 @@
 import { skipWhiteSpace, readTo, readValue, readEscaped, assertChar, readIf } from './lib/basicDecoders.js'
 
 const _voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
+const END = Symbol('end')
 
 function _readValueParts (arr, regex) {
   const out = []
@@ -32,7 +33,7 @@ function _decodeAttribute (arr) {
   skipWhiteSpace(arr)
   const c = arr[arr.i]
   if (c === '/' || c === '>') {
-    return
+    return END
   }
   let name = readValue(arr)
   if (name && name.isValue) {
@@ -68,7 +69,7 @@ function _decodeAttributes (arr) {
   const attributes = []
   while (true) {
     const attribute = _decodeAttribute(arr)
-    if (attribute !== undefined) {
+    if (attribute !== END) {
       attributes.push(attribute)
     } else {
       return attributes
